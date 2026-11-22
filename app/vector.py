@@ -5,9 +5,7 @@ from functools import lru_cache
 from pinecone import Pinecone, ServerlessSpec
 from app.config import settings
 
-
 log = logging.getLogger(__name__)
-
 
 @lru_cache(maxsize=1)
 def index():
