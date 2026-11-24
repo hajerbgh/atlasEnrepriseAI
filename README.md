@@ -1,84 +1,150 @@
-Enterprise Knowledge Assistant with RAG, LangGraph, AWS Bedrock, and Automated AWS Deployment
-Document intelligence · Conversational memory · Guardrails · Human review · Observability · CI/CD
+<div align="center">
 
-Overview · Architecture · Quick Start · CI/CD Deployment · API · Security
+# 🧠 Atlas Enterprise AI
 
-Overview
-Atlas Enterprise AI is a full-stack, educational enterprise knowledge assistant that answers natural-language questions over uploaded organizational documents using retrieval-augmented generation (RAG). It combines a FastAPI backend, LangGraph orchestration, Amazon Bedrock models, Pinecone vector search, and PostgreSQL-backed conversation history with an HTML/CSS/JavaScript interface.
+**Assistant de connaissances d'entreprise avec RAG, LangGraph, AWS Bedrock et déploiement automatisé sur AWS**
 
-The project demonstrates how to connect document ingestion, grounded question answering, safety checks, human-in-the-loop (HITL) review, operational auditing, and observability into one AI application. It also includes a deployment approach using Docker, Amazon ECR, Amazon EC2, and GitHub Actions with a self-hosted runner.
+*Intelligence documentaire · Mémoire conversationnelle · Guardrails · Revue humaine (HITL) · Observabilité · CI/CD*
 
-Project status: Teaching/reference implementation. It is not production-secure as shipped: the demo identity context is not a real authentication or authorization system, approval decisions do not automatically execute destructive operations, and production-grade availability and rollback controls must be added separately.
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-1C3C3C?style=for-the-badge)
+![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock_%7C_S3_%7C_EC2_%7C_ECR-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![Pinecone](https://img.shields.io/badge/Pinecone-Vector_DB-000000?style=for-the-badge)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-Key Features
-Capability	Description
-Document ingestion	Browser uploads files directly to private Amazon S3 using presigned URLs; the backend processes and indexes them.
-Enterprise RAG	Retrieve relevant chunks from Pinecone and generate grounded answers using Amazon Bedrock.
-LangGraph workflow	Coordinate retrieval, generation, guardrail checks, and conversational context.
-Conversation memory	Persist chat turns in PostgreSQL and reuse recent history for follow-up questions.
-Guardrails	Apply deterministic input/output checks; behavior depends on the implemented rules.
-HITL approvals	Queue selected sensitive/action-like requests for review and record approval decisions.
-Audit and feedback	Store relevant application events and user feedback in PostgreSQL.
-Observability	Optional GlassFlow Rius instrumentation for supported execution traces and diagnostics.
-Web dashboard	Document upload, chat, history, approvals, and operational views in a lightweight UI.
-Automated delivery	Build and publish versioned Docker images to ECR and deploy to EC2 through GitHub Actions.
-Technology Stack
-Layer	Technology	Purpose
-Backend	Python, FastAPI, Uvicorn	APIs and application server
-Frontend	HTML, CSS, JavaScript	Browser-based user interface
-Orchestration	LangGraph	Stateful RAG workflow
-LLM	Amazon Bedrock — Nova Lite	Response generation
-Embeddings	Amazon Bedrock — Titan Text Embeddings V2	Document and query vectors (1,024 dimensions in this project)
-Vector database	Pinecone	Semantic retrieval and document chunk indexing
-Object storage	Amazon S3	Original uploaded documents
-Relational database	PostgreSQL on Render	Document metadata, conversations, approvals, feedback, audit
-Observability	GlassFlow Rius	Optional AI workflow tracing
-Containerization	Docker	Portable application runtime
-Image registry	Amazon ECR	Private Docker image storage
-Compute	Amazon EC2	Hosts the self-hosted runner and deployed container
-CI/CD	GitHub Actions	Automated build, publish, and deployment
-Architecture
-Application architecture
+[Vue d'ensemble](#-vue-densemble) • [Fonctionnalités](#-fonctionnalités-clés) • [Stack Technique](#-stack-technique) • [Architecture](#-architecture) • [Structure](#-structure-du-dépôt) • [Prérequis](#-prérequis)
 
-Ingestion note: In the reference implementation, upload completion can perform ingestion synchronously. For larger documents and production traffic, move ingestion to a durable asynchronous worker or job service.
+</div>
 
-AWS CI/CD deployment architecture
+---
 
-Deployment flow: A commit to main triggers GitHub Actions. The CI job runs configured checks; the delivery job builds and pushes an image tagged with the Git commit SHA to ECR. The deployment job runs on the trusted EC2 self-hosted runner, pulls that image, and replaces the application container. The instance needs outbound access to the external services.
+## 📖 Vue d'ensemble
 
-Repository Structure
-.
+**Atlas Enterprise AI** est un assistant de connaissances d'entreprise full-stack conçu pour répondre en langage naturel aux questions posées sur des documents internes grâce à la **génération augmentée par récupération (RAG)**. Il associe un backend **FastAPI**, une orchestration **LangGraph**, les modèles **Amazon Bedrock**, la recherche vectorielle **Pinecone** et un historique **PostgreSQL** à une interface web légère (`HTML/CSS/JS`).
+
+Ce projet illustre comment réunir au sein d'une même application IA :
+* L'ingestion sécurisée de documents et les réponses sourcées.
+* Les contrôles de sécurité (**Guardrails**) et la validation humaine (**Human-in-the-Loop**).
+* L'audit opérationnel, l'observabilité et un pipeline **CI/CD** complet vers AWS.
+
+> [!WARNING]
+> **Statut du projet : Implémentation pédagogique / de référence.**
+> Ce dépôt n'est pas sécurisé pour la production en l'état : le contexte d'identité de démonstration ne constitue pas un véritable système d'authentification ou d'autorisation, les décisions d'approbation n'exécutent pas automatiquement d'opérations critiques, et les mécanismes de haute disponibilité ou de rollback doivent être ajoutés séparément.
+
+---
+
+## ✨ Fonctionnalités clés
+
+| Fonctionnalité | Description |
+| :--- | :--- |
+| 📄 **Ingestion de documents** | Téléversement direct depuis le navigateur vers un bucket **Amazon S3** privé via des URL présignées, suivi d'un traitement et d'une indexation par le backend. |
+| 🔍 **RAG d'entreprise** | Récupération des extraits pertinents depuis **Pinecone** et génération de réponses ancrées dans les sources avec **Amazon Bedrock**. |
+| 🕸️ **Workflow LangGraph** | Orchestration des étapes de recherche, de génération, de vérification par guardrails et de gestion du contexte conversationnel. |
+| 🧠 **Mémoire conversationnelle** | Persistance des échanges dans **PostgreSQL** et réutilisation de l'historique récent pour les questions de suivi. |
+| 🛡️ **Guardrails** | Application de règles déterministes de contrôle en entrée et en sortie pour sécuriser les interactions. |
+| 🧑‍⚖️ **Approbations HITL** | Mise en file d'attente des requêtes sensibles nécessitant une revue humaine et enregistrement des décisions. |
+| 📊 **Audit et feedback** | Journalisation des événements applicatifs et collecte des retours utilisateurs dans **PostgreSQL**. |
+| 🔭 **Observabilité** | Instrumentation optionnelle via **GlassFlow Rius** pour le traçage et le diagnostic des exécutions IA. |
+| 🖥️ **Dashboard Web** | Interface unifiée pour l'upload de documents, le chat, l'historique, les approbations et le suivi opérationnel. |
+| 🚀 **Livraison automatisée** | Construction et publication d'images Docker versionnées sur **ECR**, puis déploiement sur **EC2** via **GitHub Actions**. |
+
+---
+
+## 🛠️ Stack Technique
+
+<details open>
+<summary><b>Cliquez pour réduire / afficher le détail des couches techniques</b></summary>
+<br>
+
+| Couche | Technologie | Rôle |
+| :--- | :--- | :--- |
+| **Backend** | Python, FastAPI, Uvicorn | APIs REST et serveur applicatif |
+| **Frontend** | HTML, CSS, JavaScript | Interface utilisateur web légère |
+| **Orchestration** | LangGraph | Workflow RAG avec gestion d'état |
+| **LLM** | Amazon Bedrock — *Nova Lite* | Génération des réponses |
+| **Embeddings** | Amazon Bedrock — *Titan Text Embeddings V2* | Vectorisation des documents et requêtes (1 024 dimensions) |
+| **Base Vectorielle** | Pinecone | Indexation des chunks et recherche sémantique |
+| **Stockage Objet** | Amazon S3 | Stockage des documents bruts téléversés |
+| **Base Relationnelle** | PostgreSQL (sur Render) | Métadonnées, conversations, approbations, feedback et audit |
+| **Observabilité** | GlassFlow Rius *(optionnel)* | Traçage et supervision des workflows IA |
+| **Conteneurisation** | Docker | Environnement d'exécution portable |
+| **Registre d'images** | Amazon ECR | Stockage privé des images Docker |
+| **Calcul (Compute)** | Amazon EC2 | Hébergement du runner auto-hébergé et du conteneur applicatif |
+| **CI/CD** | GitHub Actions | Automatisation des tests, du build et du déploiement |
+
+</details>
+
+---
+
+## 🏗️ Architecture
+
+### 1. Architecture Applicative
+* **Flux d'ingestion :** Le client téléverse directement le fichier sur **S3** via une URL présignée, puis déclenche l'extraction, le découpage (*chunking*), la vectorisation (**Titan V2**) et l'indexation (**Pinecone**).
+* **Flux de requête :** La question passe par les **Guardrails**, interroge **Pinecone** et l'historique **PostgreSQL**, puis génère une réponse via **Bedrock Nova Lite** (ou bascule en revue humaine **HITL** si nécessaire).
+
+> [!NOTE]
+> **Note sur l'ingestion :** Dans cette implémentation de référence, la fin du téléversement déclenche l'ingestion de manière synchrone. Pour des documents volumineux et un trafic de production, il est recommandé de déléguer cette tâche à un worker asynchrone dédié.
+
+### 2. Architecture de Déploiement CI/CD (AWS)
+1. **CI (Intégration Continue) :** Un commit sur la branche `main` déclenche **GitHub Actions** qui exécute les vérifications configurées.
+2. **Livraison (Build & Push) :** L'image Docker est construite, taguée avec le **SHA du commit Git**, puis poussée vers **Amazon ECR**.
+3. **Déploiement (CD) :** Un job s'exécute sur le **runner auto-hébergé EC2**, récupère la nouvelle image depuis ECR et remplace le conteneur actif. *(L'instance EC2 doit disposer d'un accès sortant vers les services externes).*
+
+---
+
+## 📂 Structure du dépôt
+
+```text
+atlasEnrepriseAI/
 ├── app/
-│   ├── main.py                 # FastAPI routes and UI serving
-│   ├── graph.py                # LangGraph workflow
-│   ├── rag.py                  # RAG integration
-│   ├── vector.py               # Pinecone operations
-│   ├── aws.py                  # AWS clients
-│   ├── db.py                   # PostgreSQL access and audit
-│   ├── memory.py               # Conversation persistence
-│   ├── guardrails.py           # Input/output safety checks
-│   ├── observability.py        # Rius initialization
-│   ├── config.py               # Runtime configuration
-│   ├── templates/              # HTML templates
-│   └── static/                 # CSS and JavaScript
+│   ├── main.py              # Routes FastAPI et service de l'interface web
+│   ├── graph.py             # Définition du workflow LangGraph
+│   ├── rag.py               # Logique d'intégration RAG
+│   ├── vector.py            # Opérations sur l'index Pinecone
+│   ├── aws.py               # Clients AWS (S3, Bedrock)
+│   ├── db.py                # Accès PostgreSQL et journalisation d'audit
+│   ├── memory.py            # Persistance de l'historique conversationnel
+│   ├── guardrails.py        # Contrôles de sécurité en entrée et sortie
+│   ├── observability.py     # Initialisation de GlassFlow Rius
+│   ├── config.py            # Configuration et variables d'environnement
+│   ├── templates/           # Templates HTML
+│   └── static/              # Feuilles de style CSS et scripts JS
 ├── worker/
-│   └── ingest.py               # File processing and indexing
+│   └── ingest.py            # Traitement des fichiers et indexation vectorielle
 ├── infra/
-│   └── schema.sql              # Database schema
+│   └── schema.sql           # Schéma de la base de données PostgreSQL
 ├── scripts/
-│   └── init_db.py              # Database initialization
-├── docs/                       # Setup and operational notes
-├── requirements.txt
-├── Dockerfile
-├── .env.example
-└── .github/workflows/         # GitHub Actions pipelines
-Repository layout reflects the project modules discussed here; keep this section aligned with the files in your actual GitHub repository. The CI/CD workflow must be added if it is not yet committed.
+│   └── init_db.py           # Script d'initialisation de la base
+├── docs/                    # Guides de configuration et notes opérationnelles
+├── .github/workflows/       # Pipelines CI/CD GitHub Actions
+├── Dockerfile               # Définition de l'image Docker
+├── requirements.txt         # Dépendances Python
+└── .env.example             # Exemple de configuration d'environnement
 
-Prerequisites
-Python 3.11+ and pip (use the version compatible with your dependencies)
-Docker Desktop or Docker Engine for container testing
-AWS account with access to S3 and the required Amazon Bedrock models
-Pinecone account and API key
-PostgreSQL database (the project uses Render)
-Optional GlassFlow Rius account
-For deployment: ECR repository, EC2 Linux instance, GitHub repository, and a registered self-hosted GitHub Actions runner
+
+📋 Prérequis
+Avant de lancer le projet en local ou de configurer le pipeline de déploiement, assurez-vous de disposer des éléments suivants :
+
+Environnement local :
+
+Python 3.11+ et pip
+
+Docker Desktop ou Docker Engine (pour tester le conteneur)
+
+Services Cloud & IA :
+
+Un compte AWS avec accès à Amazon S3 et aux modèles Amazon Bedrock (Nova Lite et Titan Text Embeddings V2)
+
+Un compte Pinecone et une clé API valide
+
+Une base de données PostgreSQL (hébergée sur Render dans ce projet)
+
+(Optionnel) Un compte GlassFlow Rius pour l'observabilité
+
+Infrastructure CI/CD (pour le déploiement) :
+
+Un dépôt Amazon ECR et une instance Linux Amazon EC2
+
+Un dépôt GitHub configuré avec un runner auto-hébergé enregistré sur l'instance EC2
